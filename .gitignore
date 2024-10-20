@@ -10,3 +10,4 @@ output/
 output.txt
 build/
 *.egg-info/
+update_docker_image.sh

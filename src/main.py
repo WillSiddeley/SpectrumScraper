@@ -12,7 +12,24 @@ import pandas as pd
 import docker
 import docker.errors
 
-def scrape_license_data(geocode):
+def scrape_license_data(geocode, filename):
+    """
+    Scrapes license data using a Docker container.
+
+    This function pulls the latest Docker image for the Spectrum Scraper,
+    runs the container with the specified environment variables, and prints
+    the logs from the container.
+
+    Args:
+        geocode (str): The geographic code to be used by the scraper.
+        filename (str): The name of the file where the scraped data will be saved. The file name DOES NOT need a file extention.
+
+    Raises:
+        docker.errors.APIError: If there is an error pulling the Docker image.
+
+    Example:
+        scrape_license_data("TEL-002", "output")
+    """
     client = docker.from_env()
     image_name = "deathyvoid/spectrum-scraper:0.0.1"
     try:
@@ -25,7 +42,7 @@ def scrape_license_data(geocode):
     # Run the Docker container with the specified environment variables
     container = client.containers.run(
         image_name,
-        environment={"GEO_CODE": geocode},
+        environment={"GEO_CODE": geocode, "FILE_NAME": filename},
         volumes={os.getcwd(): {'bind': '/app', 'mode': 'rw'}},
         detach=True,
     )
@@ -38,24 +55,27 @@ def scrape_license_data(geocode):
     # Print the container logs
     print(container.logs().decode('utf-8'))
 
-def main(geo_code: str):
-    # Create a timestamp for the filename
-    timestamp = datetime.now().strftime('%m-%d-%Y_%H-%M')
-    log_filename = f"./logs/logfile_{timestamp}.log"
+def main(geo_code: str, filename: str = "output") -> None:
+    # Get the filename without the extension
+    filename = os.path.splitext(filename)[0]
 
-    # Create the logs directory if it does not exist
+    # Create file paths
+    log_file_name = f"./logs/{filename}.log"
+    csv_file_path = f"./output/{filename}.csv"
+
+    # Create directories that do not exist
     if not os.path.exists("./logs"):
         os.makedirs("./logs")
+    if not os.path.exists("./output"):
+        os.makedirs("./output")
 
-    # Set up the logger
+    # Create a logger object
     logging.basicConfig(
         level=logging.INFO,
         format='[%(asctime)s - %(levelname)s]: %(message)s',
-        filename=log_filename,
-        filemode='w'
+        filename=log_file_name,
+        filemode='w' if os.path.exists(log_file_name) else 'a'
     )
-
-    # Create a logger object
     logger = logging.getLogger(__name__)
 
     # Set up Chrome WebDriver options
@@ -88,16 +108,9 @@ def main(geo_code: str):
     # Initialize an empty DataFrame
     df = pd.DataFrame()
 
-    # Get the name of the csv file with current timestamp in it
-    csv_file_name = f"data_{timestamp}.csv"
-    csv_file_path = f"./output/{csv_file_name}"
-
-    # Create the output directory if it does not exist
-    if not os.path.exists("./output"):
-        os.makedirs("./output")
-
     # Create the CSV file with the headers
-    df.to_csv(csv_file_path, mode='w', header=True, index=False)
+    if not os.path.exists(csv_file_path):
+        df.to_csv(csv_file_path, mode='w', header=True, index=False)
 
     try:
         found_rows = 0
@@ -339,8 +352,9 @@ class SeleniumUtils:
 if __name__ == "__main__":
     # Get the geocode from the environment variable
     geo_code = os.getenv("GEO_CODE")
+    file_name = os.getenv("FILE_NAME")
     # Raise an exception if the geocode is not set
     if geo_code is None:
         raise Exception("GEO_CODE environment variable is not set")
     # Call the main function with the geocode
-    main(geo_code)
+    main(geo_code, file_name or "output")
