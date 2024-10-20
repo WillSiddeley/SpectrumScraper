@@ -11,8 +11,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy your project files into the container
-COPY requirements.txt .
-COPY src/main.py .
+COPY . ./
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt

@@ -2,6 +2,14 @@
 
 A Python package to scrape spectrum license data from the Government of Canada website.
 
+## Prerequisites
+
+Docker must be installed. 
+
+If you are running on Windows / Mac, download Docker Desktop from the [Docker website](https://www.docker.com/products/docker-desktop).
+
+If you are running on Linux, follow the instructions on the [Docker CLI installation page](https://docs.docker.com/engine/install/).
+
 ## Installation
 
 Install from  GitHub:
